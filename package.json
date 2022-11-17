@@ -1,0 +1,22 @@
+{
+  "name": "fdp-browser-fs-api",
+  "version": "1.0.0",
+  "description": "browser file system api for fdp",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fairDataSociety/fdp-browser-fs-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fairDataSociety/fdp-browser-fs-api/issues"
+  },
+  "homepage": "https://github.com/fairDataSociety/fdp-browser-fs-api#readme",
+  "dependencies": {
+    "file-system-access": "^1.0.2"
+  }
+}
