@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/fairDataSociety/fdp-browser-fs-api#readme",
   "dependencies": {
+    "@fairdatasociety/fdp-storage": "^0.5.1",
     "file-system-access": "^1.0.2"
   }
 }
