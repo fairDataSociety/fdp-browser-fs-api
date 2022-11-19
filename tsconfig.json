@@ -10,9 +10,12 @@
     "strict": true,
     "resolveJsonModule": true,
     "experimentalDecorators": true,
+    "skipLibCheck": true,
     "emitDecoratorMetadata": true,
     "typeRoots": ["./src/types", "node_modules/@types"],
     "rootDirs": ["src"],
     "outDir": "dist"
-  }
+  },
+
+  "exclude": ["node_modules"]
 }
