@@ -236,13 +236,20 @@ export class FileHandle implements FileSystemFileHandleAdapter {
 export class FolderHandle implements FileSystemFolderHandleAdapter {
   public readonly path: string
   public readonly kind = 'directory'
+  readonly name: string
+
   fdp: FdpStorage
   podname: string
+  writable = true
+  readable = true
+  reference: string
 
-  constructor(fdp: FdpStorage, podname: string, path: string) {
+  constructor(fdp: FdpStorage, name: string, podname: string, path: string, reference: string) {
     this.fdp = fdp
     this.path = path
     this.podname = podname
+    this.name = name
+    this.reference = reference
   }
 
   async *entries() {
@@ -251,19 +258,25 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
     if (!entries) throw new DOMException(...GONE)
 
     for (const entry of entries.getDirectories()) {
-      yield [entry.name, new FolderHandle(this.fdp, this.podname, this.path + entry.name + '/')] as [
-        string,
-        FileHandle | FolderHandle,
-      ]
+      yield [
+        entry.name,
+        new FolderHandle(
+          this.fdp,
+          entry.name,
+          this.podname,
+          this.path + entry.name + '/',
+          entry.reference as string,
+        ),
+      ] as [string, FolderHandle]
     }
 
     for (const entry of entries.getFiles()) {
-      yield [entry.name, new FileHandle(this.fdp, entry.reference as Reference)]
+      yield [entry.name, new FileHandle(this.fdp, entry.reference as Reference)] as [string, FileHandle]
     }
   }
 
   async isSameEntry(other: FolderHandle) {
-    return this === other
+    return this.path === other.path
   }
 
   async getDirectoryHandle(name: string, opts: FileSystemGetDirectoryOptions = {}) {
@@ -272,12 +285,12 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
         const entries = await this.fdp.directory.read(this.podname, this.path)
 
         if (entries.reference) {
-          resolve(new FolderHandle(this.fdp, this.podname, this.path))
+          resolve(new FolderHandle(this.fdp, entries.name, this.podname, this.path, entries.reference))
         } else {
           if (opts.create) {
-            const resp = await this.fdp.directory.create(this.podname, `${this.path}/${name}`)
+            await this.fdp.directory.create(this.podname, `${this.path}/${name}`)
 
-            resolve(new FolderHandle(this.fdp, this.podname, `${this.path}/${name}`))
+            resolve(new FolderHandle(this.fdp, name, this.podname, `${this.path}/${name}`, ''))
           } else {
             reject(new DOMException(...GONE))
           }
@@ -320,7 +333,7 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
   }
 }
 
-const adapter: Adapter<void> = () =>
+const adapter: Adapter<void> = async () =>
   new Promise((resolve, reject) => {
     const fdp = new FdpStorage(
       'http://localhost:1633',
@@ -328,7 +341,7 @@ const adapter: Adapter<void> = () =>
       '54ed0da82eb85ab72f9b8c37fdff0013ac5ba0bf96ead71d4a51313ed831b9e5' as BatchId,
     )
 
-    resolve(new FolderHandle(fdp, 'root', '/'))
+    resolve(new FolderHandle(fdp, '/', 'root', '/', ''))
   })
 
 export default adapter
