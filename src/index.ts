@@ -3,19 +3,23 @@ import {
   FileSystemFileHandleAdapter,
   FileSystemFolderHandleAdapter,
   WriteChunk,
-} from 'file-system-access/src/interfaces'
-import { errors, isChunkObject } from 'file-system-access/src/util'
+} from 'file-system-access/lib/interfaces'
+import { errors, isChunkObject } from 'file-system-access/lib/util.js'
 import { CID } from 'multiformats/cid'
 import * as digest from 'multiformats/hashes/digest'
 
 import { JsonValue } from '@fairdatasociety/beeson/dist/types'
 import { Reference } from '@ethersphere/swarm-cid'
-import { FdpStorage } from '@fairdatasociety/fdp-storage'
 
-import { makeChunkedFile, ChunkAddress } from '@fairdatasociety/bmt-js'
+// eslint-disable-next-line
+// @ts-ignore
+import pkg, { FdpStorage } from '@fairdatasociety/fdp-storage'
+const { FdpStorage } = pkg
+
+import bmtjs, { ChunkAddress } from '@fairdatasociety/bmt-js'
+const { makeChunkedFile } = bmtjs
 import { BeeSon } from '@fairdatasociety/beeson'
-import { BatchId } from '@ethersphere/bee-js'
-const { INVALID, GONE, MISMATCH, MOD_ERR, SYNTAX, DISALLOWED } = errors
+const { INVALID, GONE, SYNTAX } = errors
 
 const File = globalThis.File
 const Blob = globalThis.Blob
@@ -63,7 +67,7 @@ export async function getSwarmRefFromBeeson(beeson: BeeSon<JsonValue>): Promise<
 
 /**
  * Get Swarm Reference
- * @param value bytess value
+ * @param value bytes value
  * @returns A Swarm Reference (chunk address)
  */
 export async function getSwarmRef(value: Uint8Array): Promise<ChunkAddress> {
@@ -333,14 +337,8 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
   }
 }
 
-const adapter: Adapter<void> = async () =>
-  new Promise((resolve, reject) => {
-    const fdp = new FdpStorage(
-      'http://localhost:1633',
-      // eslint-disable-next-line
-      '54ed0da82eb85ab72f9b8c37fdff0013ac5ba0bf96ead71d4a51313ed831b9e5' as BatchId,
-    )
-
+const adapter: Adapter<any> = async (fdp: FdpStorage) =>
+  new Promise(resolve => {
     resolve(new FolderHandle(fdp, '/', 'root', '/', ''))
   })
 

@@ -11,7 +11,7 @@ const {
   createEmptyFile,
   createFileWithContents,
   capture,
-} = require('./util.js')
+} = import('./util.js')
 
 const arr = []
 
@@ -902,4 +902,4 @@ const arr = []
   })
 })()
 
-module.exports = arr
+export default arr

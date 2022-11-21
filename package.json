@@ -13,6 +13,7 @@
     "lint:check": "eslint \"src/**/*.ts\" && prettier --check \"src/**/*.ts\"",
     "check:types": "tsc --project tsconfig.json --skipLibCheck"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fairDataSociety/fdp-browser-fs-api.git"
@@ -27,6 +28,8 @@
     "@fairdatasociety/beeson": "^0.1.1",
     "@fairdatasociety/bmt-js": "^2.0.1",
     "@fairdatasociety/fdp-storage": "^0.5.1",
+    "@types/filesystem": "^0.0.32",
+    "@types/node": "^18.11.9",
     "file-system-access": "^1.0.2"
   },
   "devDependencies": {

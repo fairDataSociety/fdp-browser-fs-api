@@ -2,11 +2,11 @@
   "include": ["src"],
   "compilerOptions": {
     "alwaysStrict": true,
-    "target": "ES6",
+    "target": "ES2018",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
-    "module": "commonjs",
+    "module": "ES2020",
     "strict": true,
     "resolveJsonModule": true,
     "experimentalDecorators": true,
@@ -14,8 +14,11 @@
     "emitDecoratorMetadata": true,
     "typeRoots": ["./src/types", "node_modules/@types"],
     "rootDirs": ["src"],
-    "outDir": "dist"
+    "outDir": "dist",
+    "noImplicitAny": false,
+    "allowJs": true,
+    "suppressImplicitAnyIndexErrors": true
   },
 
-  "exclude": ["node_modules", "node_modules/file-system-access"]
+  "exclude": ["../node_modules", "../node_modules/file-system-access"]
 }
