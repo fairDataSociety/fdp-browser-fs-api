@@ -1,3 +1,9 @@
+import dotenv from 'dotenv'
+dotenv.config()
+
+import DOMException from 'node-domexception'
+globalThis.DOMException = DOMException
+
 import pkg from '@fairdatasociety/fdp-storage'
 const { FdpStorage } = pkg
 
@@ -19,7 +25,7 @@ async function testit(fs, step, root) {
     return true
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.log(`[ERR]: ${fs} ${step.desc}\n\t-> ${err.message}`)
+    console.log(`[ERR]: ${fs} ${step.desc}\n\t-> ${err.toString()}`)
 
     return false
   }
@@ -41,20 +47,40 @@ async function run() {
   // eslint-disable-next-line
   // @ts-ignores
   globalThis.ReadableStream = ReadableStream
-  const fdp = new FdpStorage(
-    'http://localhost:1633',
-    // eslint-disable-next-line
-    '54ed0da82eb85ab72f9b8c37fdff0013ac5ba0bf96ead71d4a51313ed831b9e5',
-  )
 
-  const wallet = fdp.account.createWallet()
-  const fdpFS = await getOriginPrivateDirectory(adapter, fdp)
+  const fdp = new FdpStorage(process.env.NEXT_PUBLIC_BEE_URL, process.env.NEXT_PUBLIC_GLOBAL_BATCH_ID, {
+    ensOptions: {
+      performChecks: true,
+      rpcUrl: process.env.NEXT_PUBLIC_RPC_URL,
+      contractAddresses: {
+        ensRegistry: process.env.NEXT_PUBLIC_ENS_REGISTRY_ADDRESS,
+        publicResolver: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_ADDRESS,
+        fdsRegistrar: process.env.NEXT_PUBLIC_SUBDOMAIN_REGISTRAR_ADDRESS,
+      },
+    },
+    ensDomain: 'fds',
+  })
 
+  let fdpFS
+  let pod
+  const wallet = await fdp.account.login(`testing`, `abtesting`)
+  try {
+    pod = await fdp.personalStorage.create('root')
+  } catch (err) {
+    console.log(err)
+  }
+  fdpFS = await getOriginPrivateDirectory(adapter, {
+    fdp,
+    podname: `root`,
+    id: `54ed0da82eb85ab72f9b8c37fdff0013ac5ba0bf96ead71d4a51313ed831b9e5`,
+    path: '/',
+    reference: `testing`,
+  })
   let hasFailures = false
 
   const steps = await import('./test.js')
 
-  for (const step in steps) {
+  for (const step of steps.default) {
     if (!(await testit('fdpFS', step, fdpFS))) {
       hasFailures = true
     }

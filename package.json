@@ -30,7 +30,9 @@
     "@fairdatasociety/fdp-storage": "^0.5.1",
     "@types/filesystem": "^0.0.32",
     "@types/node": "^18.11.9",
-    "file-system-access": "^1.0.2"
+    "dotenv": "^16.0.3",
+    "file-system-access": "^1.0.2",
+    "node-domexception": "^1.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.17.8",
