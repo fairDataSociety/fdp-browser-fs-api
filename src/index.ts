@@ -11,13 +11,8 @@ import * as digest from 'multiformats/hashes/digest'
 import { JsonValue } from '@fairdatasociety/beeson/dist/types'
 import { Reference } from '@ethersphere/swarm-cid'
 
-// eslint-disable-next-line
-// @ts-ignore
-import pkg, { FdpStorage } from '@fairdatasociety/fdp-storage'
-const { FdpStorage } = pkg
-
-import bmtjs, { ChunkAddress } from '@fairdatasociety/bmt-js'
-const { makeChunkedFile } = bmtjs
+import { FdpStorage } from '@fairdatasociety/fdp-storage'
+import { makeChunkedFile, ChunkAddress } from '@fairdatasociety/bmt-js'
 import { BeeSon } from '@fairdatasociety/beeson'
 const { INVALID, GONE, SYNTAX } = errors
 
@@ -294,16 +289,16 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
       } else {
         try {
           const entries = await this.fdp.directory.read(this.podname, `${this.path}/${name}`)
-  
+
           if (entries.raw) {
-            resolve(new FolderHandle(this.fdp, entries.name, this.podname, this.path, entries.reference as any))
+            resolve(
+              new FolderHandle(this.fdp, entries.name, this.podname, this.path, entries.reference as any),
+            )
           }
-          
         } catch (e) {
           reject(new DOMException(...GONE))
         }
       }
-
     })
   }
 
