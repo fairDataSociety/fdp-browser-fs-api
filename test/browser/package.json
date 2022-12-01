@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@fairdatasociety/fdp-storage": "https://github.com/fairDataSociety/fdp-storage.git#fix/bee-js-762",
     "@fairdatasociety/beeson": "^0.1.1",
     "@fairdatasociety/bmt-js": "^2.0.1",
+    "@fairdatasociety/fdp-storage": "github:fairdatasociety/fdp-storage#feat-node-stdlib-shims",
     "@types/filesystem": "^0.0.32",
     "@types/node": "^18.11.9",
     "chonky": "^2.3.2",
