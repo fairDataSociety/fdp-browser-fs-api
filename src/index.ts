@@ -149,9 +149,9 @@ export class FileHandle implements FileSystemFileHandleAdapter {
 
   async getFile() {
     try {
-      const data = await this.fdp.connection.bee.downloadFile(this.reference.toString())
+      const data = await this.fdp.file.downloadData(this.podname, `${this.path}${this.name}`)
 
-      return new File([data.data], this.name)
+      return new File([data.buffer], this.name)
     } catch (e) {
       throw new DOMException(...GONE)
     }
@@ -261,7 +261,7 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
             ),
           )
         } else {
-          const data = await this.fdp.file.downloadData(this.podname, this.path)
+          const data = await this.fdp.file.downloadData(this.podname, `${this.path}${name}`)
           const ref = await getSwarmRef(data)
           resolve(new FileHandle(this.fdp, this.podname, this.path, name, ref as unknown as Reference))
         }

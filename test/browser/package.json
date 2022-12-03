@@ -8,11 +8,13 @@
     "@fairdatasociety/fdp-storage": "github:fairdatasociety/fdp-storage#feat-node-stdlib-shims",
     "@types/filesystem": "^0.0.32",
     "@types/node": "^18.11.9",
+    "browser-fs-access": "^0.31.1",
     "chonky": "^2.3.2",
     "chonky-icon-fontawesome": "^2.3.2",
     "native-file-system-adapter": "^3.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-modal": "^3.16.1",
     "react-scripts": "5.0.1"
   },
   "scripts": {
