@@ -167,6 +167,12 @@ await rootHandle.removeEntry(file.name)
 
 ```
 
+## Example implementation
+
+An example implementation in React can be found in `/test/browser`. Start it with `npm run start`
+
+
+
 ## License
 
 MIT
