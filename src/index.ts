@@ -4,7 +4,7 @@ import {
   FileSystemFolderHandleAdapter,
   WriteChunk,
 } from 'file-system-access/lib/interfaces'
-import { errors, isChunkObject } from 'file-system-access/lib/util.js'
+import { errors } from 'file-system-access/lib/util.js'
 import { CID } from 'multiformats/cid'
 import * as digest from 'multiformats/hashes/digest'
 
@@ -251,15 +251,7 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
     return new Promise<FileHandle>(async (resolve, reject) => {
       try {
         if (opts.create) {
-         resolve(
-            new FileHandle(
-              this.fdp,
-              this.podname,
-              this.path,
-              name,
-              '' as any,
-            ),
-          )
+          resolve(new FileHandle(this.fdp, this.podname, this.path, name, '' as any))
         } else {
           const data = await this.fdp.file.downloadData(this.podname, `${this.path}${name}`)
           const ref = await getSwarmRef(data)
