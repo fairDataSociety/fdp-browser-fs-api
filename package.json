@@ -1,8 +1,8 @@
 {
-  "name": "fdp-browser-fs-api",
-  "version": "1.0.0",
+  "name": "@fairdatasociety/fdp-browser-fs-api",
+  "version": "0.1.0",
   "description": "browser file system api for fdp",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "prepare": "rimraf dist && npm run compile:types && tsc",
     "test": "jest --verbose",
@@ -26,7 +26,6 @@
   "dependencies": {
     "@fairdatasociety/beeson": "^0.1.1",
     "@fairdatasociety/bmt-js": "^2.0.1",
-    "@fairdatasociety/fdp-storage": "^0.5.1",
     "@types/filesystem": "^0.0.32",
     "@types/node": "^18.11.9",
     "dotenv": "^16.0.3",

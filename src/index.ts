@@ -4,7 +4,7 @@ import {
   FileSystemFolderHandleAdapter,
   WriteChunk,
 } from 'file-system-access/lib/interfaces'
-import { errors, isChunkObject } from 'file-system-access/lib/util.js'
+import { errors } from 'file-system-access/lib/util.js'
 import { CID } from 'multiformats/cid'
 import * as digest from 'multiformats/hashes/digest'
 
@@ -81,14 +81,17 @@ export function toSwarmRef(cid: CID): Reference {
 }
 
 class Sink implements UnderlyingSink<WriteChunk> {
-  private size: number
   private file: File
   private position = 0
   private fdp: FdpStorage
+  path: string
+  podname: string
 
-  constructor(fdp: FdpStorage, size: number, file: File) {
+  constructor(fdp: FdpStorage, podname: string, path: string, file: File) {
     this.fdp = fdp
-    this.size = size
+    this.podname = podname
+
+    this.path = path
     this.file = file
   }
 
@@ -99,90 +102,24 @@ class Sink implements UnderlyingSink<WriteChunk> {
    * @returns
    */
   async has(key: string): Promise<boolean> {
-    return this.fdp.connection.bee.isReferenceRetrievable(key)
+    try {
+      return this.fdp.connection.bee.isReferenceRetrievable(key)
+    } catch (e) {
+      return false
+    }
   }
 
   async write(chunk: WriteChunk) {
-    const buf = await await this.file.stream()
-    const value = await buf.getReader().read()
-    const ref = await getSwarmRef(value?.value as Uint8Array)
-    const exists = await this.has(ref.toString())
-    if (!exists) throw new DOMException(...GONE)
+    let file = chunk as File
 
-    let file = this.file
-
-    if (isChunkObject(chunk)) {
-      if (chunk.type === 'write') {
-        if (typeof chunk.position === 'number' && chunk.position >= 0) {
-          this.position = chunk.position
-          if (this.size < chunk.position) {
-            this.file = new File(
-              [this.file, new ArrayBuffer(chunk.position - this.size)],
-              this.file.name,
-              this.file,
-            )
-          }
-        }
-        if (!('data' in chunk)) {
-          throw new DOMException(...SYNTAX('write requires a data argument'))
-        }
-        chunk = chunk.data
-      } else if (chunk.type === 'seek') {
-        if (Number.isInteger(chunk.position) && chunk.position >= 0) {
-          if (this.size < chunk.position) {
-            throw new DOMException(...INVALID)
-          }
-          this.position = chunk.position
-
-          return
-        } else {
-          throw new DOMException(...SYNTAX('seek requires a position argument'))
-        }
-      } else if (chunk.type === 'truncate') {
-        if (Number.isInteger(chunk.size) && chunk.size >= 0) {
-          file =
-            chunk.size < this.size
-              ? new File([file.slice(0, chunk.size)], file.name, file)
-              : new File([file, new Uint8Array(chunk.size - this.size)], file.name, file)
-
-          this.size = file.size
-          if (this.position > file.size) {
-            this.position = file.size
-          }
-          this.file = file
-
-          return
-        } else {
-          throw new DOMException(...SYNTAX('truncate requires a size argument'))
-        }
-      }
-    }
-
-    chunk = new Blob([chunk])
-
-    let blob = this.file
-    // Calc the head and tail fragments
-    const head = blob.slice(0, this.position)
-    const tail = blob.slice(this.position + chunk.size)
-
-    // Calc the padding
-    let padding = this.position - head.size
-    if (padding < 0) {
-      padding = 0
-    }
-    blob = new File([head, new Uint8Array(padding), chunk, tail], blob.name)
-
-    this.size = blob.size
-    this.position += chunk.size
-
-    this.file = blob
+    this.file = file
   }
 
   async close() {
     return new Promise<void>(async (resolve, reject) => {
       const buffer = await this.file.arrayBuffer()
       try {
-        await this.fdp.connection.bee.uploadData(this.fdp.connection.postageBatchId, Buffer.from(buffer))
+        await this.fdp.file.uploadData(this.podname, `${this.path}${this.file.name}`, Buffer.from(buffer))
         resolve()
       } catch (e) {
         reject(e)
@@ -196,38 +133,43 @@ export class FileHandle implements FileSystemFileHandleAdapter {
   public readonly name: string
   public readonly kind = 'file'
   reference: Reference
+  podname: string
+  path: string
   public onclose?(self: this): void
 
   private fdp: FdpStorage
-  constructor(fdp: FdpStorage, reference: Reference) {
+  constructor(fdp: FdpStorage, podname: string, path: string, name: string, reference: Reference) {
     this.reference = reference
     this.fdp = fdp
-    this.name = reference
+    this.podname = podname
+    this.path = path
+    this.name = name
   }
   writable = true
 
   async getFile() {
     try {
-      const data = await this.fdp.connection.bee.downloadData(this.reference.toString())
+      const data = await this.fdp.file.downloadData(this.podname, `${this.path}${this.name}`)
 
-      return new File([data], this.name)
+      return new File([data.buffer], this.name)
     } catch (e) {
       throw new DOMException(...GONE)
     }
   }
 
   async createWritable(opts?: FileSystemCreateWritableOptions) {
-    let file = await this.getFile()
-
+    let file
     if (opts && !opts.keepExistingData) {
-      file = new File([], file.name, file)
+      file = new File([], this.name)
+    } else {
+      file = await this.getFile()
     }
 
-    return new Sink(this.fdp, file.size, file)
+    return new Sink(this.fdp, this.podname, this.path, file)
   }
 
   async isSameEntry(other: FileHandle) {
-    return this === other
+    return this.reference === other.reference
   }
 }
 
@@ -254,8 +196,8 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
   async *entries() {
     const entries = await this.fdp.directory.read(this.podname, this.path)
 
-    if (entries.getDirectories().length > 0) {
-      for (const entry of entries.getDirectories()) {
+    if (entries && entries.getDirectories().length > 0) {
+      for (let entry of entries.getDirectories()) {
         yield [
           entry.name,
           new FolderHandle(
@@ -269,9 +211,12 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
       }
     }
 
-    if (entries.getFiles().length > 0) {
-      for (const entry of entries.getFiles()) {
-        yield [entry.name, new FileHandle(this.fdp, entry.reference as Reference)] as [string, FileHandle]
+    if (entries && entries.getFiles().length > 0) {
+      for (let entry of entries.getFiles()) {
+        yield [
+          entry.name,
+          new FileHandle(this.fdp, this.podname, this.path, entry.name, entry.reference as Reference),
+        ] as [string, FileHandle]
       }
     }
   }
@@ -283,12 +228,12 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
   async getDirectoryHandle(name: string, opts: FileSystemGetDirectoryOptions = {}) {
     return new Promise<FolderHandle>(async (resolve, reject) => {
       if (opts.create) {
-        await this.fdp.directory.create(this.podname, `${this.path}/${name}`)
+        await this.fdp.directory.create(this.podname, `${this.path}${name}`)
 
-        resolve(new FolderHandle(this.fdp, name, this.podname, `${this.path}/${name}`, ''))
+        resolve(new FolderHandle(this.fdp, name, this.podname, `${this.path}${name}`, ''))
       } else {
         try {
-          const entries = await this.fdp.directory.read(this.podname, `${this.path}/${name}`)
+          const entries = await this.fdp.directory.read(this.podname, `${this.path}${name}`)
 
           if (entries.raw) {
             resolve(
@@ -305,23 +250,12 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
   async getFileHandle(name: string, opts: FileSystemGetFileOptions = {}) {
     return new Promise<FileHandle>(async (resolve, reject) => {
       try {
-        const data = await this.fdp.file.downloadData(this.podname, this.path)
-
-        if (data) {
-          const ref = await getSwarmRef(data)
-          resolve(new FileHandle(this.fdp, ref as unknown as Reference))
+        if (opts.create) {
+          resolve(new FileHandle(this.fdp, this.podname, this.path, name, '' as any))
         } else {
-          if (opts.create) {
-            const resp = await this.fdp.file.uploadData(
-              this.podname,
-              `${this.path}/${name}`,
-              new Uint8Array(),
-            )
-
-            resolve(new FileHandle(this.fdp, resp.blocksReference as unknown as Reference))
-          } else {
-            reject(new DOMException(...GONE))
-          }
+          const data = await this.fdp.file.downloadData(this.podname, `${this.path}${name}`)
+          const ref = await getSwarmRef(data)
+          resolve(new FileHandle(this.fdp, this.podname, this.path, name, ref as unknown as Reference))
         }
       } catch (e) {
         reject(new DOMException(...GONE))
@@ -329,21 +263,25 @@ export class FolderHandle implements FileSystemFolderHandleAdapter {
     })
   }
 
-  async removeEntry(name: string, opts: FileSystemRemoveOptions) {
-    // TODO: Implement
+  async removeEntry(name: string, opts: FileSystemRemoveOptions = {}) {
+    return new Promise<void>(async (resolve, reject) => {
+      try {
+        await this.fdp.file.delete(this.podname, `${this.path}${name}`)
+      } catch (e) {
+        reject(new DOMException(...GONE))
+      }
+    })
   }
 }
 export interface FdpOptions {
   fdp: FdpStorage
-  id: string
   podname: string
   path: string
-  reference: string
 }
 
 const adapter: Adapter<FdpOptions> = async (options: FdpOptions) =>
   new Promise(resolve => {
-    resolve(new FolderHandle(options.fdp, options.id, options.podname, options.path, options.reference))
+    resolve(new FolderHandle(options.fdp, options.podname, options.podname, options.path, ''))
   })
 
 export default adapter
