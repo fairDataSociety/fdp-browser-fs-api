@@ -172,6 +172,12 @@ await rootHandle.removeEntry(file.name)
 An example implementation in React can be found in `/test/browser`. Start it with `npm run start`
 
 
+## Chrome performance profiles for fs-browser-fs-api and fdp-storage
+
+
+You can find  4 performance profiles (read, upload, download, delete) for `fs-browser-fs-api` in `performance-profiles` folder. 
+
+To view a report, you can use `https://www.speedscope.app/`
 
 ## License
 
